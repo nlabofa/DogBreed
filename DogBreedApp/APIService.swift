@@ -10,11 +10,13 @@ import Foundation
 class APIService {
     private let baseURL = "https://api.thedogapi.com/v1"
     private let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    private let session: URLSession
     
-    init() {
+    init(session: URLSession = .shared) {
+        self.session = session
         // Configure URLCache for images
         let cache = URLCache(memoryCapacity: 50_000_000, diskCapacity: 100_000_000, diskPath: "dog_images")
-        URLSession.shared.configuration.urlCache = cache
+        session.configuration.urlCache = cache
     }
     
     // Fetch paginated list of breeds
@@ -40,7 +42,7 @@ class APIService {
         
         // Fetch from API
         let url = URL(string: "\(baseURL)/breeds?page=\(page)&limit=\(limit)")!
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
@@ -86,7 +88,7 @@ class APIService {
         
         // Fetch from API
         let url = URL(string: "\(baseURL)/breeds/search?q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
@@ -113,7 +115,7 @@ class APIService {
         let url = URL(string: "\(baseURL)/images/search?breed_ids=\(breedID)&limit=1")!
         do {
             let request = URLRequest(url: url, cachePolicy: useCache ? .returnCacheDataElseLoad : .reloadIgnoringLocalCacheData)
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             let images = try JSONDecoder().decode([DogImage].self, from: data)
             return URL(string: images.first?.url ?? "")
         } catch {
