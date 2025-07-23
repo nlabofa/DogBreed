@@ -12,6 +12,7 @@ struct BreedsView: View {
     @State private var page = 0
     @State private var isLoading = false
     @State private var isGridView = false  // False = list, True = grid
+    @State private var isDescending = false  // False = ascending (A-Z), True = descending (Z-A)
     
     var body: some View {
         VStack {
@@ -52,8 +53,18 @@ struct BreedsView: View {
         .navigationTitle("Dog Breeds")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { isGridView.toggle() }) {
+                Button(action: {
+                    isGridView.toggle()
+                }) {
                     Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: {
+                    isDescending.toggle()
+                    applySort()
+                }) {
+                    Image(systemName: isDescending ? "arrow.down" : "arrow.up")
                 }
             }
         }
@@ -70,15 +81,23 @@ struct BreedsView: View {
                 let newBreeds = try await APIService().fetchBreeds(page: page)
                 breeds.append(contentsOf: newBreeds)
                 page += 1
+                applySort()  // Apply sort after appending new data
             } catch {
                 print("Error loading breeds: \(error)")
             }
             isLoading = false
         }
     }
+    
+    private func applySort() {
+        breeds.sort { breed1, breed2 in
+            let name1 = breed1.name.lowercased()
+            let name2 = breed2.name.lowercased()
+            return isDescending ? name1 > name2 : name1 < name2
+        }
+    }
 }
 
-// Helper views for list/grid items
 struct BreedListItem: View {
     let breed: Breed
     
