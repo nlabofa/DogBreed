@@ -13,40 +13,58 @@ struct BreedsView: View {
     @State private var isLoading = false
     @State private var isGridView = false  // False = list, True = grid
     @State private var isDescending = false  // False = ascending (A-Z), True = descending (Z-A)
+    @State private var errorMessage: String? // For error handling
     
     var body: some View {
         VStack {
-            if isGridView {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
-                        ForEach(breeds) { breed in
-                            NavigationLink(destination: BreedDetailView(breed: breed)) {
-                                BreedGridItem(breed: breed)
-                            }
-                            .onAppear {
-                                if breed.id == breeds.last?.id {
-                                    loadMoreBreeds()
+            if let errorMessage = errorMessage {
+                VStack {
+                    Text("Error: \(errorMessage)")
+                        .foregroundColor(.red)
+                    Button("Retry") {
+                        self.errorMessage = nil
+                        loadMoreBreeds()
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            } else if breeds.isEmpty && !isLoading {
+                Text("No breeds available. Pull to refresh.")
+            } else {
+                if isGridView {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
+                            ForEach(breeds) { breed in
+                                NavigationLink(destination: BreedDetailView(breed: breed)) {
+                                    BreedGridItem(breed: breed)
                                 }
+                                .onAppear {
+                                    if breed.id == breeds.last?.id {
+                                        loadMoreBreeds()
+                                    }
+                                }
+                            }
+                        }
+                        if isLoading {
+                            ProgressView()
+                        }
+                    }
+                } else {
+                    List(breeds) { breed in
+                        NavigationLink(destination: BreedDetailView(breed: breed)) {
+                            BreedListItem(breed: breed)
+                        }
+                        .onAppear {
+                            if breed.id == breeds.last?.id {
+                                loadMoreBreeds()
                             }
                         }
                     }
                     if isLoading {
                         ProgressView()
                     }
-                }
-            } else {
-                List(breeds) { breed in
-                    NavigationLink(destination: BreedDetailView(breed: breed)) {
-                        BreedListItem(breed: breed)
-                    }
-                    .onAppear {
-                        if breed.id == breeds.last?.id {
-                            loadMoreBreeds()
-                        }
-                    }
-                }
-                if isLoading {
-                    ProgressView()
                 }
             }
         }
@@ -69,6 +87,12 @@ struct BreedsView: View {
             }
         }
         .onAppear {
+            if breeds.isEmpty { loadMoreBreeds() }
+        }
+        .refreshable {
+            page = 0
+            breeds = []
+            errorMessage = nil
             loadMoreBreeds()
         }
     }
@@ -81,9 +105,9 @@ struct BreedsView: View {
                 let newBreeds = try await APIService().fetchBreeds(page: page)
                 breeds.append(contentsOf: newBreeds)
                 page += 1
-                applySort()  // Apply sort after appending new data
+                applySort()
             } catch {
-                print("Error loading breeds: \(error)")
+                errorMessage = error.localizedDescription
             }
             isLoading = false
         }
