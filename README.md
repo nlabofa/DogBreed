@@ -30,7 +30,6 @@ The app follows a clean architecture approach:
 - **Models**: `Breed.swift` defines the data structure
 - **Views**: Separate view files for different screens (BreedsView, SearchView, BreedDetail)
 - **Services**: `APIService.swift` handles all network communication
-- **Theming**: `AppTheme.swift` maintains consistent styling throughout the app
 
 ## Getting Started
 
